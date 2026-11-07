@@ -11,18 +11,18 @@
 :root{
   --bg:#EEF3F4; --surface:#FFFFFF; --surface2:#F5F9FA; --ink:#12262B; --ink2:#46595F; --muted:#6B7F85; --line:#D8E2E5;
   --resp:#0089A8; --fis:#C2570C; --otro:#7C8F95;
-  --accent:#0A6C84; --accent-ink:#FFFFFF; --resp-bg:#DFF2F7; --fis-bg:#FBE8DC;
+  --accent:#0F7A6A; --accent-ink:#FFFFFF; --resp-bg:#DFF2F7; --fis-bg:#FBE8DC;
   --good:#1E7B4B; --good-bg:#E0F2E8; --warn:#9A5B00; --warn-bg:#FBEBCB; --crit:#B3261E; --crit-bg:#FADCD9;
-  --brand-bg:#0B3D49; --brand-fg:#EAF6F8; --brand-soft:#9CCBD6;
+  --brand-bg:#0D4A44; --brand-fg:#ECF8F5; --brand-soft:#9FDCD0;
   --f-display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0C1719; --surface:#142326; --surface2:#1A2D31; --ink:#E5F0F2; --ink2:#A8BDC2; --muted:#8AA2A8; --line:#27393D;
-  --resp:#1C9BBA; --fis:#DE6E2E; --otro:#6F878D; --accent:#3AB4CF; --accent-ink:#06181C; --resp-bg:#12353D; --fis-bg:#3A2418;
+  --resp:#1C9BBA; --fis:#DE6E2E; --otro:#6F878D; --accent:#3CCDB5; --accent-ink:#06181C; --resp-bg:#12353D; --fis-bg:#3A2418;
   --good:#5CC48C; --good-bg:#173A29; --warn:#E5B04F; --warn-bg:#3B2E12; --crit:#FF8A80; --crit-bg:#41201D; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0C1719; --surface:#142326; --surface2:#1A2D31; --ink:#E5F0F2; --ink2:#A8BDC2; --muted:#8AA2A8; --line:#27393D;
-  --resp:#1C9BBA; --fis:#DE6E2E; --otro:#6F878D; --accent:#3AB4CF; --accent-ink:#06181C; --resp-bg:#12353D; --fis-bg:#3A2418;
+  --resp:#1C9BBA; --fis:#DE6E2E; --otro:#6F878D; --accent:#3CCDB5; --accent-ink:#06181C; --resp-bg:#12353D; --fis-bg:#3A2418;
   --good:#5CC48C; --good-bg:#173A29; --warn:#E5B04F; --warn-bg:#3B2E12; --crit:#FF8A80; --crit-bg:#41201D; color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -146,13 +146,13 @@ html{background:var(--bg)}
 .logo svg{display:none}
 .logo.nologo img{display:none}.logo.nologo svg{display:block}
 .mark{display:flex;align-items:center;gap:12px}
-.mark .logo{width:44px;height:44px;border-radius:10px;background:#fff;padding:5px;border:1px solid var(--line)}
+.mark .logo{width:48px;height:48px;border-radius:50%;background:#fff;overflow:hidden;border:1px solid var(--line)}
 .mark b{font-family:var(--f-display);font-size:26px;letter-spacing:-.02em;line-height:1}
 .mark small{display:block;color:var(--ink2);font-size:12px;margin-top:3px}
 body.locked header.top{display:none}
 .login{display:grid;grid-template-columns:1.05fr 1fr;max-width:940px;margin:clamp(0px,4vh,40px) auto;width:100%;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--surface);min-height:min(620px,calc(100vh - 72px))}
 .login .brand{background:var(--brand-bg);color:var(--brand-fg);padding:40px 36px;display:flex;flex-direction:column;justify-content:space-between;gap:28px;position:relative;overflow:hidden;min-width:0}
-.login .brand .logo{width:76px;height:76px;border-radius:16px;background:#fff;padding:8px}
+.login .brand .logo{width:116px;height:116px;border-radius:50%;background:#fff;overflow:hidden}
 .login .brand h1{font-size:46px;line-height:1;letter-spacing:-.03em;color:var(--brand-fg);margin-top:22px}
 .login .brand p{color:var(--brand-soft);margin:12px 0 0;max-width:30ch;font-size:15px;line-height:1.5}
 .login .brand .wave{position:absolute;left:0;right:0;bottom:56px;width:100%;height:auto;opacity:.55;pointer-events:none}
@@ -174,7 +174,7 @@ body.locked header.top{display:none}
   .login{grid-template-columns:1fr;border-radius:14px}
   .login .brand{padding:28px 24px;gap:20px}
   .login .brand h1{font-size:36px;margin-top:14px}
-  .login .brand .logo{width:60px;height:60px}
+  .login .brand .logo{width:84px;height:84px}
   .login .brand .wave{display:none}
   .login .panel{padding:28px 24px}
 }
@@ -184,7 +184,7 @@ body.locked header.top{display:none}
   <header class="top">
     <div>
       <div class="mark">
-        <span class="logo"><img src="logo.png" alt="Logo NEURODINAMIA S.A" onerror="this.parentNode.classList.add('nologo')"><svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0B3D49"/><path d="M8 26h8l4-10 6 18 4-12 3 4h7" fill="none" stroke="#9CCBD6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="logo"><img src="logo.png" alt="Logo NEURODINAMIA S.A" onerror="this.parentNode.classList.add('nologo')"><svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0D4A44"/><path d="M8 26h8l4-10 6 18 4-12 3 4h7" fill="none" stroke="#9FDCD0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <div><b>NeuTerap</b><small>Terapia respiratoria y física · NEURODINAMIA S.A</small></div>
       </div>
     </div>
@@ -194,11 +194,11 @@ body.locked header.top{display:none}
   <section id="auth" class="login" hidden aria-label="Acceso a NeuTerap">
     <div class="brand">
       <div class="top">
-        <span class="logo"><img src="logo.png" alt="Logo NEURODINAMIA S.A" onerror="this.parentNode.classList.add('nologo')"><svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0B3D49"/><path d="M8 26h8l4-10 6 18 4-12 3 4h7" fill="none" stroke="#9CCBD6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="logo"><img src="logo.png" alt="Logo NEURODINAMIA S.A" onerror="this.parentNode.classList.add('nologo')"><svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0D4A44"/><path d="M8 26h8l4-10 6 18 4-12 3 4h7" fill="none" stroke="#9FDCD0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <h1>NeuTerap</h1>
         <p>Registro y control de la terapia respiratoria y física, por servicio y en tiempo real.</p>
       </div>
-      <svg class="wave" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 C40 70 50 70 70 70 L90 70 L105 30 L125 105 L145 55 L160 70 C200 70 230 70 250 70 L270 70 L285 38 L305 100 L325 58 L340 70 C380 70 410 70 430 70 L450 70 L465 34 L485 108 L505 56 L520 70 L600 70" fill="none" stroke="#9CCBD6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <svg class="wave" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 C40 70 50 70 70 70 L90 70 L105 30 L125 105 L145 55 L160 70 C200 70 230 70 250 70 L270 70 L285 38 L305 100 L325 58 L340 70 C380 70 410 70 430 70 L450 70 L465 34 L485 108 L505 56 L520 70 L600 70" fill="none" stroke="#9FDCD0" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
       <div class="org">NEURODINAMIA S.A</div>
     </div>
     <div class="panel">
