@@ -2,7 +2,7 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Control Terapia Respiratoria y Física</title>
+<title>NeuTerap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -13,6 +13,7 @@
   --resp:#0089A8; --fis:#C2570C; --otro:#7C8F95;
   --accent:#0A6C84; --accent-ink:#FFFFFF; --resp-bg:#DFF2F7; --fis-bg:#FBE8DC;
   --good:#1E7B4B; --good-bg:#E0F2E8; --warn:#9A5B00; --warn-bg:#FBEBCB; --crit:#B3261E; --crit-bg:#FADCD9;
+  --brand-bg:#0B3D49; --brand-fg:#EAF6F8; --brand-soft:#9CCBD6;
   --f-display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
@@ -138,27 +139,81 @@ svg text{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
 [hidden]{display:none!important}
 #app{display:flex;flex-direction:column;gap:16px}
 html{background:var(--bg)}
+
+/* marca y acceso */
+.logo{display:inline-grid;place-items:center;flex:none}
+.logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+.logo svg{display:none}
+.logo.nologo img{display:none}.logo.nologo svg{display:block}
+.mark{display:flex;align-items:center;gap:12px}
+.mark .logo{width:44px;height:44px;border-radius:10px;background:#fff;padding:5px;border:1px solid var(--line)}
+.mark b{font-family:var(--f-display);font-size:26px;letter-spacing:-.02em;line-height:1}
+.mark small{display:block;color:var(--ink2);font-size:12px;margin-top:3px}
+body.locked header.top{display:none}
+.login{display:grid;grid-template-columns:1.05fr 1fr;max-width:940px;margin:clamp(0px,4vh,40px) auto;width:100%;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--surface);min-height:min(620px,calc(100vh - 72px))}
+.login .brand{background:var(--brand-bg);color:var(--brand-fg);padding:40px 36px;display:flex;flex-direction:column;justify-content:space-between;gap:28px;position:relative;overflow:hidden;min-width:0}
+.login .brand .logo{width:76px;height:76px;border-radius:16px;background:#fff;padding:8px}
+.login .brand h1{font-size:46px;line-height:1;letter-spacing:-.03em;color:var(--brand-fg);margin-top:22px}
+.login .brand p{color:var(--brand-soft);margin:12px 0 0;max-width:30ch;font-size:15px;line-height:1.5}
+.login .brand .wave{position:absolute;left:0;right:0;bottom:56px;width:100%;height:auto;opacity:.55;pointer-events:none}
+.login .brand .org{position:relative;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-soft);font-weight:600}
+.login .brand .top,.login .brand .org{position:relative;z-index:1}
+.login .panel{padding:44px 40px;display:flex;flex-direction:column;justify-content:center;gap:20px;min-width:0}
+.login .panel h2{font-size:26px}
+.login .panel .note{font-size:13.5px}
+.login .panel form{display:flex;flex-direction:column;gap:16px}
+.login label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:500;color:var(--ink2)}
+.login input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:11px 12px;min-height:44px;font-size:15px;width:100%;min-width:0}
+.login .pw{position:relative}
+.login .pw input{padding-right:84px}
+.login .pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--accent);font-weight:600;font-size:12.5px;cursor:pointer;padding:8px}
+.login .btn{width:100%;min-height:46px;font-size:15px}
+.login .msg{min-height:20px}
+.login .help{font-size:12.5px;color:var(--muted)}
+@media (max-width:760px){
+  .login{grid-template-columns:1fr;border-radius:14px}
+  .login .brand{padding:28px 24px;gap:20px}
+  .login .brand h1{font-size:36px;margin-top:14px}
+  .login .brand .logo{width:60px;height:60px}
+  .login .brand .wave{display:none}
+  .login .panel{padding:28px 24px}
+}
 </style>
-</head><body>
+</head><body class="locked">
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>Control de Terapia Respiratoria y Física</h1>
-      <p class="sub">Atenciones por servicio, registro por paciente e indicadores</p>
+      <div class="mark">
+        <span class="logo"><img src="logo.png" alt="Logo NEURODINAMIA S.A" onerror="this.parentNode.classList.add('nologo')"><svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0B3D49"/><path d="M8 26h8l4-10 6 18 4-12 3 4h7" fill="none" stroke="#9CCBD6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div><b>NeuTerap</b><small>Terapia respiratoria y física · NEURODINAMIA S.A</small></div>
+      </div>
     </div>
     <div class="sync"><span class="dot" id="dot"></span><span id="syncTxt">Conectando…</span><button class="btn sec2" type="button" id="logoutBtn" hidden style="min-height:32px;padding:4px 12px;margin-left:8px">Salir</button></div>
   </header>
 
-  <section id="auth" class="card" hidden style="max-width:420px;margin:24px auto;width:100%">
-    <h2>Ingresar</h2>
-    <p class="note" id="authNote">Usa el correo y la contraseña que te entregó la jefe.</p>
-    <form id="loginForm" class="f" style="margin-top:12px">
-      <div class="fields" style="grid-template-columns:1fr">
-        <label>Correo<input type="email" id="l-email" required autocomplete="username"></label>
-        <label>Contraseña<input type="password" id="l-pass" required autocomplete="current-password"></label>
+  <section id="auth" class="login" hidden aria-label="Acceso a NeuTerap">
+    <div class="brand">
+      <div class="top">
+        <span class="logo"><img src="logo.png" alt="Logo NEURODINAMIA S.A" onerror="this.parentNode.classList.add('nologo')"><svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0B3D49"/><path d="M8 26h8l4-10 6 18 4-12 3 4h7" fill="none" stroke="#9CCBD6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h1>NeuTerap</h1>
+        <p>Registro y control de la terapia respiratoria y física, por servicio y en tiempo real.</p>
       </div>
-      <div class="actions"><button class="btn" type="submit" id="loginBtn">Entrar</button><span class="msg" id="loginMsg" role="status"></span></div>
-    </form>
+      <svg class="wave" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70 C40 70 50 70 70 70 L90 70 L105 30 L125 105 L145 55 L160 70 C200 70 230 70 250 70 L270 70 L285 38 L305 100 L325 58 L340 70 C380 70 410 70 430 70 L450 70 L465 34 L485 108 L505 56 L520 70 L600 70" fill="none" stroke="#9CCBD6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <div class="org">NEURODINAMIA S.A</div>
+    </div>
+    <div class="panel">
+      <div>
+        <h2>Ingresar</h2>
+        <p class="note" id="authNote" style="margin:6px 0 0">Usa el correo y la contraseña que te entregó la jefe.</p>
+      </div>
+      <form id="loginForm">
+        <label>Correo<input type="email" id="l-email" required autocomplete="username" placeholder="nombre@neurodinamia.com.co"></label>
+        <label>Contraseña<span class="pw"><input type="password" id="l-pass" required autocomplete="current-password"><button type="button" id="pwToggle" aria-label="Mostrar u ocultar contraseña">Mostrar</button></span></label>
+        <button class="btn" type="submit" id="loginBtn">Entrar</button>
+        <span class="msg" id="loginMsg" role="status"></span>
+      </form>
+      <p class="help">¿Olvidaste tu contraseña? Pídele a la jefe que la restablezca.</p>
+    </div>
   </section>
 
   <div id="app" hidden>
@@ -627,6 +682,7 @@ renderChecklist();
 const cfg=window.APP_CONFIG||{};
 const mapRow=r=>({...r,creado:Date.parse(r.creado)||0});
 function showLogin(msg){
+  document.body.classList.add('locked');
   $('#auth').hidden=false;$('#app').hidden=true;$('#logoutBtn').hidden=true;
   $('#loginMsg').textContent=msg||'';setSync();
 }
@@ -652,6 +708,7 @@ async function onSession(s){
   if(channel){sb.removeChannel(channel);channel=null}
   recs=[];isAdmin=false;loaded=false;
   if(!s){document.querySelector('nav.tabs').hidden=true;go('registrar');showLogin();return}
+  document.body.classList.remove('locked');
   $('#auth').hidden=true;$('#app').hidden=false;$('#logoutBtn').hidden=false;
   const {data:prof}=await sb.from('profiles').select('rol,nombre').eq('id',s.user.id).maybeSingle();
   isAdmin=prof?.rol==='jefe';
@@ -671,6 +728,7 @@ $('#loginForm').addEventListener('submit',async e=>{
   onSession(data.session);
 });
 $('#logoutBtn').onclick=()=>sb.auth.signOut();
+$('#pwToggle').onclick=()=>{const i=$('#l-pass'),h=i.type==='password';i.type=h?'text':'password';$('#pwToggle').textContent=h?'Ocultar':'Mostrar'};
 (async()=>{
   document.querySelector('nav.tabs').hidden=true;go('registrar');
   if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY||!window.supabase){
