@@ -303,6 +303,7 @@ body.locked header.top{display:none}
 .rep-grid select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 9px;min-height:40px;min-width:0}
 .rep-opt{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink2)}
 .rep-opt input{margin-top:3px}
+#f-terapeuta[readonly]{background:var(--surface2);color:var(--ink2);cursor:default}
 </style>
 </head><body class="locked">
 <div class="wrap">
@@ -489,7 +490,7 @@ const lsGet=k=>{try{return localStorage.getItem(k)}catch{return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 
 /* ============ Estado ============ */
-let sb=null, session=null, recs=[], loaded=false, dbError=null, isAdmin=false, channel=null, anim=true;
+let sb=null, session=null, recs=[], loaded=false, dbError=null, isAdmin=false, channel=null, anim=true, myName='';
 const F={preset:'30',from:addDays(today(),-29),to:today(),svc:'all',ter:'all'};
 const form={items:new Set(),o2:''};
 
@@ -855,11 +856,11 @@ $('#form').addEventListener('submit',async e=>{
   if(!form.items.size){$('#st2').scrollIntoView({behavior:'smooth',block:'center'});$('#st2').classList.remove('shake');void $('#st2').offsetWidth;$('#st2').classList.add('shake');return say('Marca al menos un ítem.','err')}
   if(form.items.has('oxigenoterapia')&&!form.o2){const w=$('#o2wrap');w.scrollIntoView({behavior:'smooth',block:'center'});w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');return say('Elige el dispositivo de oxigenoterapia.','err')}
   const btns=document.querySelectorAll('.js-save');btns.forEach(b=>{b.disabled=true;b.classList.add('loading')});
-  const data={fecha:val('f-fecha'),servicio:val('f-servicio'),paciente:val('f-paciente'),hc:val('f-hc'),edad:Number(val('f-edad')),unidad:val('f-unidad'),genero:val('f-genero'),terapeuta:val('f-terapeuta'),items:[...form.items],o2:form.items.has('oxigenoterapia')?form.o2:'',obs:val('f-obs')};
+  const data={fecha:val('f-fecha'),servicio:val('f-servicio'),paciente:val('f-paciente'),hc:val('f-hc'),edad:Number(val('f-edad')),unidad:val('f-unidad'),genero:val('f-genero'),terapeuta:isAdmin?val('f-terapeuta'):myName,items:[...form.items],o2:form.items.has('oxigenoterapia')?form.o2:'',obs:val('f-obs')};
   try{
     const {error}=await sb.from('atenciones').insert(data);
     if(error)throw error;
-    lsSet('terapeuta',data.terapeuta);
+    if(isAdmin)lsSet('terapeuta',data.terapeuta);
     lsSet('cnt-'+today(),String(+(lsGet('cnt-'+today())||0)+1));
     clearPatient();
     say('Guardado: '+data.paciente+' · '+SVC[data.servicio].n,'ok');
@@ -1157,7 +1158,6 @@ function setSync(){
 /* ============ Arranque ============ */
 fillServices();
 $('#f-fecha').value=today();
-$('#f-terapeuta').value=lsGet('terapeuta')||'';
 renderChecklist();
 const cfg=window.APP_CONFIG||{};
 const mapRow=r=>({...r,creado:Date.parse(r.creado)||0});
@@ -1187,12 +1187,18 @@ async function onSession(s){
   session=s;
   if(channel){sb.removeChannel(channel);channel=null}
   recs=[];isAdmin=false;loaded=false;
-  if(!s){document.querySelector('nav.tabs').hidden=true;go('registrar');showLogin();return}
+  if(!s){document.querySelector('nav.tabs').hidden=true;go('registrar');$('#f-terapeuta').value='';$('#f-terapeuta').readOnly=false;myName='';showLogin();return}
   document.body.classList.remove('locked');
   $('#auth').hidden=true;$('#app').hidden=false;$('#logoutBtn').hidden=false;
   const {data:prof}=await sb.from('profiles').select('rol,nombre').eq('id',s.user.id).maybeSingle();
   isAdmin=prof?.rol==='jefe';
-  if(prof?.nombre&&!$('#f-terapeuta').value){$('#f-terapeuta').value=prof.nombre;updateSummary()}
+  const meta=s.user.user_metadata||{};
+  const deCorreo=(s.user.email||'').split('@')[0].split('.').map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join(' ');
+  myName=((prof&&prof.nombre)||'').trim()||String(meta.nombre||'').trim()||deCorreo;
+  const ter=$('#f-terapeuta');
+  if(isAdmin){ter.readOnly=false;if(!ter.value)ter.value=lsGet('terapeuta')||myName}
+  else{ter.value=myName;ter.readOnly=true;ter.title='Tu nombre viene de tu cuenta'}
+  updateSummary();
   document.querySelector('nav.tabs').hidden=!isAdmin;
   loaded=true;setSync();
   go(isAdmin?(location.hash.slice(1)||'indicadores'):'registrar');
