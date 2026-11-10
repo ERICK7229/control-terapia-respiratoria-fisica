@@ -298,6 +298,11 @@ body.locked header.top{display:none}
   .tag{animation:tagin .2s}
   .chip:has(input:checked) span::before{animation:tick .25s}
 }
+.rep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;align-items:end}
+.rep-grid label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink2);font-weight:500}
+.rep-grid select{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 9px;min-height:40px;min-width:0}
+.rep-opt{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink2)}
+.rep-opt input{margin-top:3px}
 </style>
 </head><body class="locked">
 <div class="wrap">
@@ -343,6 +348,7 @@ body.locked header.top{display:none}
     <button role="tab" id="t-indicadores" data-go="indicadores">Indicadores</button>
     <button role="tab" id="t-registrar" data-go="registrar">Registrar atención</button>
     <button role="tab" id="t-registros" data-go="registros">Registros</button>
+    <button role="tab" id="t-informe" data-go="informe">Informe mensual</button>
   </nav>
 
   <div id="filtersHost"></div>
@@ -411,6 +417,8 @@ body.locked header.top{display:none}
     </form>
     <div class="mobbar"><span id="mobTxt">Sin ítems</span><button class="btn js-save" type="submit" form="form">Guardar atención</button></div>
   </section>
+
+  <section data-view="informe" hidden aria-labelledby="t-informe" id="v-informe" class="sec"></section>
 
   <section data-view="registros" hidden aria-labelledby="t-registros" id="v-registros"></section>
   </div>
@@ -482,7 +490,6 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 
 /* ============ Estado ============ */
 let sb=null, session=null, recs=[], loaded=false, dbError=null, isAdmin=false, channel=null, anim=true;
-let demoHidden=false;
 const F={preset:'30',from:addDays(today(),-29),to:today(),svc:'all',ter:'all'};
 const form={items:new Set(),o2:''};
 
@@ -493,30 +500,7 @@ function prep(r){
   return {...r,_items:items,_resp:resp,_fis:fis,_pid:String(r.hc||r.paciente||'').trim().toLowerCase()||r.id};
 }
 
-/* ============ Datos de ejemplo (solo en pantalla, no se guardan) ============ */
-function demoData(){
-  let s=20261105;const rnd=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
-  const ters=['Terapeuta 1','Terapeuta 2','Terapeuta 3','Terapeuta 4'];
-  const P={vmi:.22,vmni:.1,cnaf:.14,gases:.3,oxigenoterapia:.3,inhaloterapia:.2,aerosolterapia:.2,tr_succion:.45,tr_incentivo:.25,toma_muestras:.1,
-    terapia_fisica:.55,consentimiento:.12,proc_tqt:.06,asist_tqt:.05,reanimacion:.015,fibro:.03,toracostomia:.02,pronacion:.04,intubacion:.04,oxido_nitrico:.015,
-    extub_prog:.06,extub_fallida:.008,autoextub:.006,extub_lista:.05,traslado:.07,fallece:.012,a_piso:.05,a_estudios:.04,remitido:.015,
-    traqueitis:.006,navm:.006,lista_navm:.12,lesiones_piel:.01,espirometria:.07,decanulacion:.03,cpap:.06};
-  const out=[];let id=0;
-  for(let d=0;d<30;d++){const fecha=addDays(today(),-d);
-    SERVICES.forEach((sv,si)=>{const n=2+Math.floor(rnd()*5);
-      for(let i=0;i<n;i++){const pat=Math.floor(rnd()*9);
-        const items=[];groupsFor(sv.k).forEach(([,ks])=>ks.forEach(k=>{if(rnd()<(P[k]||.05))items.push(k)}));
-        if(!items.length)items.push(rnd()<.5?'terapia_fisica':'tr_succion');
-        out.push({id:'demo'+(id++),fecha,servicio:sv.k,paciente:'Paciente '+(si+1)+'0'+pat,hc:'9'+si+'00'+pat,edad:20+pat*7,unidad:'años',genero:pat%2?'Femenino':'Masculino',terapeuta:ters[Math.floor(rnd()*4)],items,o2:items.includes('oxigenoterapia')?O2[Math.floor(rnd()*5)]:''});}});}
-  return out;
-}
-let demoCache=null;
-const isDemo=()=>loaded&&recs.length===0&&!demoHidden;
-function allData(){
-  if(recs.length)return recs.map(prep);
-  if(isDemo()){demoCache=demoCache||demoData().map(prep);return demoCache}
-  return [];
-}
+function allData(){return recs.map(prep)}
 
 /* ============ Cálculos ============ */
 function filtered(){
@@ -548,7 +532,7 @@ function setPreset(p){
 }
 function renderFilters(){
   const host=$('#filtersHost');
-  if(view==='registrar'){host.innerHTML='';return}
+  if(view==='registrar'||view==='informe'){host.innerHTML='';return}
   const base=allData();
   const ters=[...new Set(base.map(r=>r.terapeuta).filter(Boolean))].sort();
   if(F.ter!=='all'&&!ters.includes(F.ter))F.ter='all';
@@ -603,12 +587,10 @@ function tile(label,val,foot,status){
 function renderDash(){
   const el=$('#v-indicadores');
   const rs=filtered();
-  const demo=isDemo();
   let h='';
   if(!loaded&&!dbError){h=`<div class="card empty">Cargando registros…</div>`;el.innerHTML=h;return}
-  if(demo)h+=`<div class="banner"><span><b>Datos de ejemplo.</b> No son pacientes reales. Los indicadores reales aparecen cuando se guarda la primera atención en «Registrar atención».</span><button type="button" id="hideDemo">Ocultar ejemplos</button></div>`;
   if(!rs.length){
-    el.innerHTML=h+`<div class="card empty">No hay atenciones en este periodo o filtro. Cambia las fechas o registra una atención.</div>`;bindDemo();return}
+    el.innerHTML=h+`<div class="card empty">${recs.length?'No hay atenciones en este periodo o filtro. Cambia las fechas o los filtros.':'Aún no hay atenciones registradas. Cuando las terapeutas guarden la primera, los indicadores aparecerán aquí.'}</div>`;return}
 
   const pr=rs.filter(r=>r._resp), pf=rs.filter(r=>r._fis);
   h+=`<div class="grid g4">
@@ -675,10 +657,8 @@ function renderDash(){
   h+=`<p class="note">Definiciones. <b>Paciente atendido</b>: historia clínica única en el periodo. <b>Terapia física</b>: atención con el ítem «Terapia física». <b>Terapia respiratoria</b>: atención con al menos un ítem respiratorio (oxigenación, inhaloterapia, succión, procedimientos, soporte ventilatorio, extubación). Una misma atención puede contar en ambas. Traslados, desenlaces, calidad y consentimiento no cuentan como tipo de terapia.</p>`;
   el.innerHTML=h;
   const note=$('#trendNote');if(note)note.textContent=trendNoteTxt;
-  bindDemo();
   if(anim){anim=false;el.classList.add('anim');playIn(el)}else el.classList.remove('anim');
 }
-function bindDemo(){const b=$('#hideDemo');if(b)b.onclick=()=>{demoHidden=true;renderAll()}}
 
 let trendNoteTxt='';
 function weekStart(s){const d=new Date(s+'T00:00:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return iso(d)}
@@ -725,16 +705,14 @@ function renderRegs(){
   const el=$('#v-registros');
   if(!loaded&&!dbError){el.innerHTML='<div class="card empty">Cargando registros…</div>';return}
   const rs=filtered().sort((a,b)=>(b.fecha.localeCompare(a.fecha))||((b.creado||0)-(a.creado||0)));
-  const demo=isDemo();
   const shown=rs.slice(0,300);
   let h=`<div class="card"><div class="cardhead"><h2>Registros (${nf(rs.length)})</h2><div class="actions"><button class="btn sec2" type="button" id="csvBtn"${recs.length?'':' disabled'}>Descargar CSV</button></div></div>`;
-  if(demo)h+=`<div class="banner" style="margin-bottom:12px"><span><b>Datos de ejemplo.</b> No se pueden borrar ni descargar.</span></div>`;
   if(!rs.length)h+='<div class="empty">No hay registros en este periodo o filtro.</div>';
   else h+=`<div class="tw"><table><thead><tr><th>Fecha</th><th>Servicio</th><th>Paciente</th><th>HC</th><th>Edad</th><th>Género</th><th>Terapeuta</th><th>Tipo</th><th>Ítems</th><th></th></tr></thead><tbody>
     ${shown.map(r=>`<tr><td>${fmtD(r.fecha)}</td><td>${esc(SVC[r.servicio]?.n||r.servicio)}</td><td>${esc(r.paciente)}</td><td>${esc(r.hc)}</td><td>${esc(r.edad??'')} ${esc(r.unidad||'')}</td><td>${esc(r.genero)}</td><td>${esc(r.terapeuta)}</td>
       <td>${r._resp?'<span class="pill resp">Resp.</span> ':''}${r._fis?'<span class="pill fis">Física</span>':''}</td>
       <td><details><summary>${r._items.size}</summary><ul>${[...r._items].map(k=>`<li>${esc(ITEMS[k]?.[0]||k)}${k==='oxigenoterapia'&&r.o2?': '+esc(r.o2):''}</li>`).join('')}${r.obs?`<li><i>${esc(r.obs)}</i></li>`:''}</ul></details></td>
-      <td>${demo?'':`<button class="del${armed===r.id?' arm':''}" type="button" data-del="${esc(r.id)}">${armed===r.id?'Confirmar':'Borrar'}</button>`}</td></tr>`).join('')}</tbody></table></div>
+      <td><button class="del${armed===r.id?' arm':''}" type="button" data-del="${esc(r.id)}">${armed===r.id?'Confirmar':'Borrar'}</button></td></tr>`).join('')}</tbody></table></div>
     ${rs.length>shown.length?`<p class="note">Se muestran los 300 más recientes. Acota las fechas para ver el resto.</p>`:''}`;
   el.innerHTML=h+'</div>';
 }
@@ -891,10 +869,269 @@ $('#form').addEventListener('submit',async e=>{
   }finally{btns.forEach(b=>{b.disabled=false;b.classList.remove('loading')})}
 });
 
+/* ============ Informe mensual ============ */
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const R={ym:today().slice(0,7),svc:'all',detalle:false};
+const TIPO={resp:'Respiratoria',fis:'Física',otro:'Evento / registro'};
+const KP=[['Pacientes únicos atendidos','pac'],['Pacientes con terapia respiratoria','pResp'],['Pacientes con terapia física','pFis'],['Atenciones registradas','n'],['Atenciones de terapia respiratoria','aResp'],['Atenciones de terapia física','aFis'],['Atenciones con ambas terapias','ambas']];
+const LIB={
+  exceljs:'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+  jspdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  autotable:'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'};
+const ymLabel=ym=>{const[y,m]=ym.split('-');return MESES[+m-1]+' '+y};
+const prevYm=ym=>{let[y,m]=ym.split('-').map(Number);m--;if(!m){m=12;y--}return y+'-'+pad(m)};
+const monthRecs=(ym,svc)=>allData().filter(r=>r.fecha.slice(0,7)===ym&&(svc==='all'||r.servicio===svc));
+const _libs={};
+function loadScript(u){
+  return _libs[u]||(_libs[u]=new Promise((ok,ko)=>{const t=document.createElement('script');t.src=u;t.onload=ok;t.onerror=()=>{delete _libs[u];ko(new Error('No se pudo cargar una librería. Revisa tu conexión a internet.'))};document.head.appendChild(t)}));
+}
+function saveBlob(blob,name){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function stats(rs,ym){
+  const pr=rs.filter(r=>r._resp),pf=rs.filter(r=>r._fis);
+  const c=k=>withItem(rs,k).length,cp=k=>ptsItem(rs,k);
+  const ef=c('extub_fallida'),ep=c('extub_prog'),vmi=c('vmi'),ln=c('lista_navm'),el=c('extub_lista'),ex=ef+ep;
+  const items=Object.keys(ITEMS).map(k=>({k,n:ITEMS[k][0],t:ITEMS[k][1],at:c(k),pac:cp(k)})).filter(x=>x.at).sort((a,b)=>b.at-a.at);
+  const ters=[...new Set(rs.map(r=>r.terapeuta||'Sin nombre'))].map(t=>{const x=rs.filter(r=>(r.terapeuta||'Sin nombre')===t);return[t,x.length,uniq(x),x.filter(r=>r._resp).length,x.filter(r=>r._fis).length]}).sort((a,b)=>b[1]-a[1]);
+  const [y,m]=ym.split('-').map(Number),nd=new Date(y,m,0).getDate();
+  const dias=Array.from({length:nd},(_,i)=>{const f=ym+'-'+pad(i+1),x=rs.filter(r=>r.fecha===f);return{d:i+1,f,resp:x.filter(r=>r._resp).length,fis:x.filter(r=>r._fis).length}});
+  return {n:rs.length,pac:uniq(rs),pResp:uniq(pr),pFis:uniq(pf),aResp:pr.length,aFis:pf.length,ambas:rs.filter(r=>r._resp&&r._fis).length,items,ters,dias,
+    soporte:['vmi','vmni','cnaf','oxido_nitrico','cpap'].map(k=>[ITEMS[k][0],cp(k)]),
+    o2:O2.map(d=>[d,uniq(rs.filter(r=>r._items.has('oxigenoterapia')&&r.o2===d))]),
+    calidad:[
+      ['Extubación fallida (reintubación antes de 24 h)',ex?pct(ef,ex)+' %':'—',ef+' de '+ex+' extubaciones'],
+      ['Autoextubaciones',cp('autoextub'),'pacientes'],
+      ['NAVM',cp('navm'),'pacientes con diagnóstico'],
+      ['Traqueítis',cp('traqueitis'),'pacientes con diagnóstico'],
+      ['Lesiones de piel por dispositivos',cp('lesiones_piel'),'pacientes'],
+      ['Lista de chequeo de NAVM',vmi?pct(ln,vmi)+' %':'—',ln+' listas en '+vmi+' atenciones con VMI'],
+      ['Extubación con lista de chequeo',ex?pct(el,ex)+' %':'—',el+' de '+ex+' extubaciones'],
+      ['Fallecidos',cp('fallece'),'pacientes'],['Remitidos',cp('remitido'),'pacientes'],['Trasladados a piso',cp('a_piso'),'pacientes']]};
+}
+function svcRows(rs,prev,list){
+  return list.map(sv=>{const a=rs.filter(r=>r.servicio===sv.k),b=prev.filter(r=>r.servicio===sv.k);
+    return{n:sv.n,pac:uniq(a),pr:uniq(a.filter(r=>r._resp)),pf:uniq(a.filter(r=>r._fis)),at:a.length,ap:b.length}});
+}
+const sgn=d=>(d>0?'+':'')+d;
+
+/* ---------- Excel ---------- */
+async function buildXlsx(ym,svc,conDetalle){
+  await loadScript(LIB.exceljs);
+  const wb=new ExcelJS.Workbook();wb.creator='NeuTerap';wb.company='NEURODINAMIA S.A';wb.created=new Date();
+  const teal='FF0D4A44',zebra='FFF2F7F8',ln={style:'thin',color:{argb:'FFD8E2E5'}},bd={top:ln,bottom:ln,left:ln,right:ln};
+  const fill=a=>({type:'pattern',pattern:'solid',fgColor:{argb:a}});
+  function title(ws,t,sub,cols){
+    ws.mergeCells(1,1,1,cols);const c=ws.getCell(1,1);c.value=t;c.font={bold:true,size:16,color:{argb:teal}};ws.getRow(1).height=26;
+    ws.mergeCells(2,1,2,cols);const d=ws.getCell(2,1);d.value=sub;d.font={color:{argb:'FF46595F'}};
+  }
+  function section(ws,row,text,cols){ws.mergeCells(row,1,row,cols);const c=ws.getCell(row,1);c.value=text;c.font={bold:true,size:12,color:{argb:'FF12262B'}};return row+1}
+  function table(ws,row,head,rows,fmts){
+    const h=ws.getRow(row);h.height=24;
+    head.forEach((v,i)=>{const c=h.getCell(i+1);c.value=v;c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill=fill(teal);c.border=bd;c.alignment={horizontal:i?'center':'left',vertical:'middle',wrapText:true}});
+    rows.forEach((r,ri)=>{const w=ws.getRow(row+1+ri);r.forEach((v,i)=>{const c=w.getCell(i+1);c.value=v;c.border=bd;if(i)c.alignment={horizontal:'center'};if(fmts&&fmts[i])c.numFmt=fmts[i];if(ri%2)c.fill=fill(zebra)})});
+    return row+rows.length+2;
+  }
+  function fillSheet(ws,name,rs,prev,extra){
+    const s=stats(rs,ym),p=stats(prev,prevYm(ym));
+    ws.columns=[{width:48},{width:17},{width:17},{width:17},{width:17},{width:17}];
+    title(ws,name,'Periodo: '+ymLabel(ym)+' · NEURODINAMIA S.A',6);
+    let r=4;
+    r=section(ws,r,'Resumen del mes',6);
+    r=table(ws,r,['Indicador','Este mes','Mes anterior','Variación'],KP.map(([l,k])=>[l,s[k],p[k],s[k]-p[k]]),[null,'0','0','+0;-0;0']);
+    if(extra)r=extra(ws,r);
+    r=section(ws,r,'Ítems realizados',6);
+    r=table(ws,r,['Ítem','Tipo','Atenciones','Pacientes únicos','% de las atenciones'],s.items.map(x=>[x.n,TIPO[x.t],x.at,x.pac,s.n?x.at/s.n:0]),[null,null,'0','0','0.0%']);
+    r=section(ws,r,'Soporte ventilatorio (pacientes únicos)',6);
+    r=table(ws,r,['Soporte','Pacientes'],s.soporte,[null,'0']);
+    r=section(ws,r,'Oxigenoterapia por dispositivo (pacientes únicos)',6);
+    r=table(ws,r,['Dispositivo','Pacientes'],s.o2,[null,'0']);
+    r=section(ws,r,'Indicadores de calidad y seguridad',6);
+    r=table(ws,r,['Indicador','Valor','Detalle'],s.calidad);
+    r=section(ws,r,'Por terapeuta',6);
+    r=table(ws,r,['Terapeuta','Atenciones','Pacientes','Respiratoria','Física'],s.ters,[null,'0','0','0','0']);
+    r=section(ws,r,'Atenciones por día',6);
+    r=table(ws,r,['Fecha','Respiratoria','Física'],s.dias.map(d=>[fmtD(d.f),d.resp,d.fis]),[null,'0','0']);
+    ws.views=[{showGridLines:false}];
+  }
+  const all=monthRecs(ym,'all'),allPrev=monthRecs(prevYm(ym),'all');
+  const bySvc=(ws,r)=>{
+    r=section(ws,r,'Por servicio',6);
+    const rows=svcRows(all,allPrev,SERVICES).map(x=>[x.n,x.pac,x.pr,x.pf,x.at,x.ap]);
+    return table(ws,r,['Servicio','Pacientes únicos','Pac. respiratoria','Pac. física','Atenciones','Atenciones mes anterior'],rows,[null,'0','0','0','0','0']);
+  };
+  if(svc==='all'){
+    fillSheet(wb.addWorksheet('Resumen general'),'Todos los servicios',all,allPrev,bySvc);
+    SERVICES.forEach(sv=>fillSheet(wb.addWorksheet(sv.n.slice(0,31)),sv.n,monthRecs(ym,sv.k),monthRecs(prevYm(ym),sv.k)));
+  }else{
+    fillSheet(wb.addWorksheet(SVC[svc].n.slice(0,31)),SVC[svc].n,monthRecs(ym,svc),monthRecs(prevYm(ym),svc));
+  }
+  if(conDetalle){
+    const rs=monthRecs(ym,svc).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    const ws=wb.addWorksheet('Detalle');
+    const head=['Fecha','Servicio','Paciente','Historia clínica','Edad','Género','Terapeuta','Tipo de terapia','Dispositivo O2','Ítems','Observaciones'];
+    ws.columns=[{width:12},{width:30},{width:28},{width:16},{width:10},{width:12},{width:22},{width:20},{width:24},{width:60},{width:36}];
+    const h=ws.getRow(1);h.height=24;
+    head.forEach((v,i)=>{const c=h.getCell(i+1);c.value=v;c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill=fill(teal);c.alignment={vertical:'middle',wrapText:true}});
+    rs.forEach(r=>ws.addRow([fmtD(r.fecha),SVC[r.servicio]?.n||r.servicio,r.paciente,r.hc,(r.edad??'')+' '+(r.unidad||''),r.genero,r.terapeuta,[r._resp?'Respiratoria':'',r._fis?'Física':''].filter(Boolean).join(' + '),r.o2||'',[...r._items].map(k=>ITEMS[k]?.[0]||k).join(', '),r.obs||'']));
+    ws.autoFilter={from:{row:1,column:1},to:{row:1,column:head.length}};
+    ws.views=[{state:'frozen',ySplit:1}];
+  }
+  const buf=await wb.xlsx.writeBuffer();
+  saveBlob(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'NeuTerap_Informe_'+ym+'_'+(svc==='all'?'Todos':svc)+'.xlsx');
+}
+
+/* ---------- PDF ---------- */
+function logoData(){
+  return new Promise(res=>{const i=new Image();
+    i.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=300;const x=c.getContext('2d');x.beginPath();x.arc(150,150,150,0,7);x.clip();x.drawImage(i,0,0,300,300);res(c.toDataURL('image/png'))}catch{res(null)}};
+    i.onerror=()=>res(null);i.src='logo.png'});
+}
+function pdfHeader(doc,logo,title,ym){
+  doc.setFillColor(13,74,68);doc.rect(0,0,210,30,'F');
+  if(logo)doc.addImage(logo,'PNG',10,5,20,20);
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('NEURODINAMIA S.A',36,13);
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.text('Informe mensual de terapia respiratoria y física',36,19.5);
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(ymLabel(ym),200,13,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text('Generado el '+fmtD(today()),200,19.5,{align:'right'});
+  doc.setTextColor(18,38,43);doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text(title,10,42);
+  doc.setDrawColor(0,137,168);doc.setLineWidth(.8);doc.line(10,45,40,45);
+  return 52;
+}
+function pdfH2(doc,y,t){
+  if(y>262){doc.addPage();y=16}
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(13,74,68);doc.text(t,10,y);
+  return y+4;
+}
+function pdfTable(doc,y,head,body,cols){
+  doc.autoTable({startY:y,head:[head],body,theme:'grid',margin:{left:10,right:10,top:14,bottom:16},
+    styles:{fontSize:8.5,cellPadding:1.8,lineColor:[216,226,229],lineWidth:.2,textColor:[18,38,43],font:'helvetica'},
+    headStyles:{fillColor:[13,74,68],textColor:[255,255,255],fontStyle:'bold'},alternateRowStyles:{fillColor:[245,249,250]},columnStyles:cols||{}});
+  return doc.lastAutoTable.finalY+8;
+}
+function pdfKpis(doc,y,items){
+  const w=(190-3*4)/4;
+  items.forEach((it,i)=>{
+    const x=10+i*(w+4);
+    doc.setDrawColor(216,226,229);doc.setLineWidth(.3);doc.setFillColor(255,255,255);doc.roundedRect(x,y,w,27,2,2,'FD');
+    doc.setFillColor(...it.color);doc.rect(x+3.5,y+4,2.4,2.4,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(70,89,95);doc.text(it.label,x+8,y+6,{maxWidth:w-10});
+    doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(18,38,43);doc.text(String(it.val),x+4,y+18);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(107,127,133);doc.text(it.sub,x+4,y+23.5,{maxWidth:w-6});
+  });
+  return y+27+8;
+}
+function pdfDaily(doc,y,dias){
+  if(y+60>282){doc.addPage();y=16}
+  const x0=12,w=188,h=38,mx=Math.max(1,...dias.flatMap(d=>[d.resp,d.fis])),bw=w/dias.length;
+  doc.setDrawColor(216,226,229);doc.setLineWidth(.2);
+  for(let g=0;g<=4;g++){const gy=y+h-g*h/4;doc.line(x0,gy,x0+w,gy)}
+  dias.forEach((d,i)=>{
+    const bx=x0+i*bw+bw*.12,bww=bw*.38,hr=d.resp/mx*h,hf=d.fis/mx*h;
+    doc.setFillColor(0,137,168);if(hr>0)doc.rect(bx,y+h-hr,bww,hr,'F');
+    doc.setFillColor(194,87,12);if(hf>0)doc.rect(bx+bww,y+h-hf,bww,hf,'F');
+    if(d.d===1||d.d%5===0){doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(107,127,133);doc.text(String(d.d),bx+bww,y+h+4,{align:'center'})}
+  });
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(107,127,133);doc.text(String(mx),x0-1.5,y+1.5,{align:'right'});doc.text('0',x0-1.5,y+h,{align:'right'});
+  doc.setFontSize(7.5);doc.setTextColor(70,89,95);
+  doc.setFillColor(0,137,168);doc.rect(x0,y+h+7,2.5,2.5,'F');doc.text('Respiratoria',x0+4,y+h+9.3);
+  doc.setFillColor(194,87,12);doc.rect(x0+28,y+h+7,2.5,2.5,'F');doc.text('Física',x0+32,y+h+9.3);
+  doc.text('Atenciones por día del mes',x0+w,y+h+9.3,{align:'right'});
+  return y+h+18;
+}
+function pdfSection(doc,sec,ym,logo){
+  const s=stats(sec.rs,ym),p=stats(sec.prev,prevYm(ym));
+  let y=pdfHeader(doc,logo,sec.name,ym);
+  if(!s.n){doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(70,89,95);doc.text('No hay atenciones registradas en este periodo.',10,y+4);return}
+  const dt=k=>sgn(s[k]-p[k])+' vs mes anterior ('+p[k]+')';
+  y=pdfKpis(doc,y,[
+    {label:'Pacientes con terapia respiratoria',val:s.pResp,sub:dt('pResp'),color:[0,137,168]},
+    {label:'Pacientes con terapia física',val:s.pFis,sub:dt('pFis'),color:[194,87,12]},
+    {label:'Pacientes únicos atendidos',val:s.pac,sub:dt('pac'),color:[70,89,95]},
+    {label:'Atenciones registradas',val:s.n,sub:dt('n'),color:[70,89,95]}]);
+  if(sec.all){
+    y=pdfH2(doc,y,'Pacientes por servicio');
+    y=pdfTable(doc,y,['Servicio','Pac. respiratoria','Pac. física','Pac. únicos','Atenciones','Mes anterior'],
+      svcRows(sec.rs,sec.prev,SERVICES).map(x=>[x.n,x.pr,x.pf,x.pac,x.at,x.ap]),{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'}});
+  }
+  y=pdfH2(doc,y,'Atenciones por día');y=pdfDaily(doc,y,s.dias);
+  y=pdfH2(doc,y,'Ítems realizados');
+  y=pdfTable(doc,y,['Ítem','Tipo','Atenciones','Pacientes','% atenciones'],s.items.map(x=>[x.n,TIPO[x.t],x.at,x.pac,(x.at/s.n*100).toFixed(1)+' %']),{2:{halign:'right'},3:{halign:'right'},4:{halign:'right'}});
+  y=pdfH2(doc,y,'Soporte ventilatorio y oxigenoterapia (pacientes únicos)');
+  y=pdfTable(doc,y,['Concepto','Pacientes'],[...s.soporte,...s.o2.map(([d,n])=>['Oxigenoterapia: '+d,n])],{1:{halign:'right'}});
+  y=pdfH2(doc,y,'Indicadores de calidad y seguridad');
+  y=pdfTable(doc,y,['Indicador','Valor','Detalle'],s.calidad.map(c=>[c[0],String(c[1]),c[2]]),{1:{halign:'right'}});
+  y=pdfH2(doc,y,'Por terapeuta');
+  pdfTable(doc,y,['Terapeuta','Atenciones','Pacientes','Respiratoria','Física'],s.ters,{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'}});
+}
+async function buildPdf(ym,svc){
+  await loadScript(LIB.jspdf);await loadScript(LIB.autotable);
+  const logo=await logoData();
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+  const mk=(name,k,extra)=>({name,rs:monthRecs(ym,k),prev:monthRecs(prevYm(ym),k),...extra});
+  const secs=svc==='all'?[mk('Todos los servicios','all',{all:true}),...SERVICES.map(sv=>mk(sv.n,sv.k))]:[mk(SVC[svc].n,svc)];
+  secs.forEach((sec,i)=>{if(i)doc.addPage();pdfSection(doc,sec,ym,logo)});
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(107,127,133);
+    doc.text('NeuTerap · NEURODINAMIA S.A',10,290);doc.text('Página '+i+' de '+pages,200,290,{align:'right'})}
+  doc.save('NeuTerap_Informe_'+ym+'_'+(svc==='all'?'Todos':svc)+'.pdf');
+}
+
+/* ---------- Pantalla ---------- */
+function renderInforme(){
+  const el=$('#v-informe');
+  if(!el.dataset.ready){
+    el.dataset.ready='1';
+    const y0=+today().slice(0,4),ys=[];for(let y=2025;y<=y0;y++)ys.push(y);
+    const [cy,cm]=R.ym.split('-');
+    el.innerHTML=`<div class="card f">
+      <div class="cardhead" style="margin:0"><h2>Informe mensual</h2><span class="note">Se arma con los registros del mes elegido</span></div>
+      <div class="rep-grid">
+        <label>Mes<select id="ri-m">${MESES.map((m,i)=>`<option value="${pad(i+1)}"${pad(i+1)===cm?' selected':''}>${m}</option>`).join('')}</select></label>
+        <label>Año<select id="ri-y">${ys.map(y=>`<option${String(y)===cy?' selected':''}>${y}</option>`).join('')}</select></label>
+        <label>Servicio<select id="ri-s"><option value="all">Todos (un informe por servicio)</option>${SERVICES.map(s=>`<option value="${s.k}">${esc(s.n)}</option>`).join('')}</select></label>
+      </div>
+      <label class="rep-opt"><input type="checkbox" id="ri-d"><span>Incluir en el Excel la hoja «Detalle» con nombres e historias clínicas. Contiene datos sensibles: guárdalo en un lugar seguro.</span></label>
+      <div class="actions"><button class="btn" type="button" id="dlXlsx">Descargar Excel</button><button class="btn sec2" type="button" id="dlPdf">Descargar PDF</button><span class="msg" id="riMsg" role="status"></span></div>
+    </div>
+    <div class="card" id="riPrev"></div>`;
+  }
+  updateInformePreview();
+}
+function updateInformePreview(){
+  const box=$('#riPrev');if(!box)return;
+  const rs=monthRecs(R.ym,R.svc),prev=monthRecs(prevYm(R.ym),R.svc);
+  const rows=svcRows(rs,prev,R.svc==='all'?SERVICES:[SVC[R.svc]]);
+  const none=!rs.length;
+  box.innerHTML=`<div class="cardhead"><h2>${ymLabel(R.ym)}</h2><span class="note">${nf(rs.length)} atenciones · ${nf(uniq(rs))} pacientes únicos</span></div>`+
+    (none?'<div class="empty">No hay atenciones registradas en este mes.</div>':`<div class="tw"><table><thead><tr><th>Servicio</th><th class="r">Pac. respiratoria</th><th class="r">Pac. física</th><th class="r">Pac. únicos</th><th class="r">Atenciones</th><th class="r">Mes anterior</th></tr></thead><tbody>
+    ${rows.map(x=>`<tr><td>${esc(x.n)}</td><td class="r">${x.pr}</td><td class="r">${x.pf}</td><td class="r">${x.pac}</td><td class="r">${x.at}</td><td class="r">${x.ap}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note" style="margin:10px 0 0">El informe completo incluye gráfica diaria, ítems realizados, soporte ventilatorio, oxigenoterapia, indicadores de calidad y datos por terapeuta.</p>`);
+  ['dlXlsx','dlPdf'].forEach(id=>{const b=$('#'+id);if(b)b.disabled=none});
+}
+document.addEventListener('change',e=>{
+  const id=e.target.id;
+  if(id==='ri-m'||id==='ri-y'){R.ym=$('#ri-y').value+'-'+$('#ri-m').value;updateInformePreview()}
+  else if(id==='ri-s'){R.svc=e.target.value;updateInformePreview()}
+  else if(id==='ri-d'){R.detalle=e.target.checked}
+});
+document.addEventListener('click',async e=>{
+  const id=e.target.id;
+  if(id!=='dlXlsx'&&id!=='dlPdf')return;
+  const b=e.target,msg=$('#riMsg');
+  b.disabled=true;b.classList.add('loading');msg.className='msg';msg.textContent='Preparando el informe…';
+  try{
+    if(id==='dlXlsx')await buildXlsx(R.ym,R.svc,R.detalle);else await buildPdf(R.ym,R.svc);
+    msg.className='msg okk';msg.textContent='Informe listo. Revisa tu carpeta de descargas.';
+  }catch(err){msg.className='msg err';msg.textContent='No se pudo generar el informe. '+(err.message||'')}
+  finally{b.classList.remove('loading');updateInformePreview()}
+});
+
 /* ============ Vistas ============ */
 let view='indicadores';
 function go(v,push){
-  view=!isAdmin?'registrar':(['indicadores','registrar','registros'].includes(v)?v:'indicadores');
+  view=!isAdmin?'registrar':(['indicadores','registrar','registros','informe'].includes(v)?v:'indicadores');
   document.querySelectorAll('[data-view]').forEach(s=>s.hidden=s.dataset.view!==view);
   document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.go===view));
   anim=true;
@@ -907,6 +1144,7 @@ function renderAll(){
   renderFilters();
   if(view==='indicadores')renderDash();
   else if(view==='registros')renderRegs();
+  else if(view==='informe')renderInforme();
 }
 function setSync(){
   const d=$('#dot'),t=$('#syncTxt');
